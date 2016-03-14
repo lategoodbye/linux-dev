@@ -840,6 +840,27 @@
 					fsl,pull-up = <MXS_PULL_ENABLE>;
 				};
 
+				spi2_sck_cfg: spi2-sck-cfg@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						MX28_PAD_SSP2_SCK__SSP2_SCK
+					>;
+					fsl,pull-up = <MXS_PULL_DISABLE>;
+				};
+
+				spi2_pins_b: spi2-pins-b@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						MX28_PAD_SSP2_SCK__SSP2_SCK
+						MX28_PAD_SSP2_MOSI__SSP2_CMD
+						MX28_PAD_SSP2_MISO__SSP2_D0
+						MX28_PAD_SSP2_SS0__SSP2_D3
+					>;
+					fsl,drive-strength = <MXS_DRIVE_4mA>;
+					fsl,voltage = <MXS_VOLTAGE_HIGH>;
+					fsl,pull-up = <MXS_PULL_ENABLE>;
+				};
+
 				spi3_pins_a: spi3@0 {
 					reg = <0>;
 					fsl,pinmux-ids = <
