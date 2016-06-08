@@ -66,7 +66,7 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&mac0_pins_a>, <&mac0_phy_reset_pin>;
 			phy-supply = <&reg_3p3v>;
-			phy-reset-duration = <100>;
+			phy-reset-duration = <25>;
 			status = "okay";
 		};
 	};
