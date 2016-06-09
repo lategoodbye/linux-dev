@@ -1,0 +1,275 @@
+/*
+ * Copyright 2013 I2SE GmbH
+ *
+ * The code contained herein is licensed under the GNU General Public
+ * License. You may obtain a copy of the GNU General Public License
+ * Version 2 or later at the following locations:
+ *
+ * http://www.opensource.org/licenses/gpl-license.html
+ * http://www.gnu.org/copyleft/gpl.html
+ */
+
+/dts-v1/;
+#include "imx28.dtsi"
+
+/ {
+	model = "I2SE EVAcharge SE";
+	compatible = "i2se,imx28-ievachargese", "fsl,imx28";
+
+	aliases {
+		spi1 = &ssp2;	// give QCA7000 fixed name
+	};
+
+	memory {
+		reg = <0x40000000 0x08000000>;
+	};
+
+	apb@80000000 {
+		apbh@80000000 {
+			hsadc@80002000 {
+				status = "okay";
+			};
+
+			ssp0: ssp@80010000 {
+				compatible = "fsl,imx28-mmc";
+				pinctrl-names = "default";
+				pinctrl-0 = <&mmc0_8bit_pins_a
+					&mmc0_cd_cfg &mmc0_sck_cfg>;
+				bus-width = <8>;
+				status = "okay";
+			};
+
+			ssp2: ssp@80014000 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				compatible = "fsl,imx28-spi";
+				pinctrl-names = "default";
+				pinctrl-0 = <&spi2_pins_a>;
+				status = "okay";
+				
+				qca7000: qca7000@0 {	
+					compatible = "qca,qca7000";
+  					interrupt-parent = <&gpio3>;
+					interrupts = <25 0x1>;
+					spi-cpha;
+					spi-cpol;
+					spi-max-frequency = <16000000>;
+					intr-gpios = <&gpio3 25 0>;
+  					reg = <0x0>;
+   				}; 
+
+			};
+
+			pinctrl@80018000 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&hog_pins_a>;
+
+				hog_pins_a: hog@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						/* unused ssp3 to shift register */
+						0x2183 /* MX28_PAD_SSP3_SCK__GPIO_2_24  */
+						0x2193 /* MX28_PAD_SSP3_MOSI__GPIO_2_25 */
+						0x21a3 /* MX28_PAD_SSP3_MISO__GPIO_2_26 */
+						0x21b3 /* MX28_PAD_SSP3_SS0__GPIO_2_27 */
+						/* unused external header pins */
+						0x30b3 /* MX28_PAD_AUART2_RTS__GPIO_3_11 */
+						0x30a3 /* MX28_PAD_AUART2_CTS__GPIO_3_10 */
+						0x30c3 /* MX28_PAD_AUART3_RX__GPIO_3_12 */
+						0x30d3 /* MX28_PAD_AUART3_TX__GPIO_3_13 */
+						0x20c3 /* MX28_PAD_SSP1_SCK__GPIO_2_12 */
+						0x20d3 /* MX28_PAD_SSP1_CMD__GPIO_2_13 */
+						0x20e3 /* MX28_PAD_SSP1_DATA0__GPIO_2_14 */
+						0x20f3 /* MX28_PAD_SSP1_DATA3__GPIO_2_15 */
+						/* pullup */
+						0x2143 /* MX28_PAD_SSP2_SS1__GPIO_2_20, EMMC_RESET */
+					>;
+					fsl,drive-strength = <0>;
+					fsl,voltage = <1>;
+					fsl,pull-up = <0>;
+				};
+
+				qca7k: qca7k@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						0x3193 /* MX28_PAD_I2C0_SDA__GPIO_3_25, SPI_INT */
+						0x10d3 /* MX28_PAD_LCD_D13__GPIO_1_13, QCA7K_RESET */
+						0x10e3 /* MX28_PAD_LCD_D14__GPIO_1_14, GPIO_0 */
+						0x10f3 /* MX28_PAD_LCD_D15__GPIO_1_15, GPIO_1 */
+						0x1123 /* MX28_PAD_LCD_D18__GPIO_1_18, GPIO_2 */
+						0x1153 /* MX28_PAD_LCD_D21__GPIO_1_21, GPIO_3 */
+					>;
+					fsl,drive-strength = <0>;
+					fsl,voltage = <1>;
+					fsl,pull-up = <0>;
+				};
+
+				motor: motor@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						0x3153 /* MX28_PAD_SAIF0_LRCLK__GPIO_3_21, MOTOR1_PHASE */
+						0x3163 /* MX28_PAD_SAIF0_BITCLK__GPIO_3_22, MOTOR1_ENABLE */
+						0x3173 /* MX28_PAD_SAIF0_SDATA0__GPIO_3_23, MOTOR2_PHASE */
+						0x31a3 /* MX28_PAD_SAIF1_SDATA0__GPIO_3_26, MOTOR2_ENABLE */
+						0x31b3 /* MX28_PAD_SPDIF__GPIO_3_27, MOTOR_FAULT */
+					>;
+					fsl,drive-strength = <0>;
+					fsl,voltage = <1>;
+					fsl,pull-up = <0>;
+				};
+
+				daugther: daugther@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						0x1073 /* MX28_PAD_LCD_D07__GPIO_1_7, DAUGHTER_GPIO_0 */
+						0x10a3 /* MX28_PAD_LCD_D10__GPIO_1_10, DAUGHTER_GPIO_1 */
+						0x1193 /* MX28_PAD_LCD_WR_RWN__GPIO_1_25, DAUGHTER_GPIO_2 */
+						0x11c3 /* MX28_PAD_LCD_VSYNC__GPIO_1_28, DAUGHTER_GPIO_3 */
+						0x11d3 /* MX28_PAD_LCD_HSYNC__GPIO_1_29, DAUGHTER_GPIO_4 */
+						0x11e3 /* MX28_PAD_LCD_DOTCLK__GPIO_1_30, DAUGHTER_GPIO_5 */
+					>;
+					fsl,drive-strength = <0>;
+					fsl,voltage = <1>;
+					fsl,pull-up = <0>;
+				};
+
+				control_pilot: control_pilot@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						0x3063 /* MX28_PAD_AUART1_CTS__GPIO_3_6, CP_EDGE */
+						0x3073 /* MX28_PAD_AUART1_RTS__GPIO_3_7, CP_EDGE */
+						0x3123 /* MX28_PAD_PWM2__GPIO_3_18, CP_HIGH */
+						0x31c3 /* MX28_PAD_PWM3__GPIO_3_28, CP_LOW */
+					>;
+					fsl,drive-strength = <0>;
+					fsl,voltage = <1>;
+					fsl,pull-up = <0>;
+				};
+
+				proximity_pilot: proximity_pilot@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						0x10c3 /* MX28_PAD_LCD_D12__GPIO_1_12, PP_PULLUP */
+					>;
+					fsl,drive-strength = <0>;
+					fsl,voltage = <1>;
+					fsl,pull-up = <0>;
+				};
+
+				led_pins: led_pins@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						0x1103 /* MX28_PAD_LCD_D16__GPIO_1_16, LED_2 */
+						0x1083 /* MX28_PAD_LCD_D08__GPIO_1_8, LED_3 */					
+						0x3043 /* MX28_PAD_AUART1_RX__GPIO_3_4, LED_1 */
+						0x3053 /* MX28_PAD_AUART1_TX__GPIO_3_5, LED_0 */
+					>;
+					fsl,drive-strength = <0>;
+					fsl,voltage = <1>;
+					fsl,pull-up = <0>;
+				};
+			};
+
+			can1: can@80034000 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&can1_pins_b>;
+				status = "okay";
+			};
+		};
+
+		apbx@80040000 {
+			lradc@80050000 {
+				status = "okay";
+			};
+
+			duart: serial@80074000 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&duart_pins_a>;
+				status = "okay";
+			};
+
+			auart0: serial@8006a000 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&auart0_2pins_a>;
+				status = "okay";
+			};
+
+			auart2: serial@8006e000 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&auart2_2pins_b>;
+				status = "okay";
+			};
+
+			usbphy0: usbphy@8007c000 {
+				status = "okay";
+			};
+
+			usbphy1: usbphy@8007e000 {
+				status = "okay";
+			};
+		};
+	};
+
+	ahb@80080000 {
+		usb0: usb@80080000 {
+			status = "okay";
+			dr_mode = "host";
+		};
+
+		usb1: usb@80090000 {
+			status = "okay";
+		};
+
+		mac0: ethernet@800f0000 {
+			phy-mode = "rmii";
+			pinctrl-names = "default";
+			pinctrl-0 = <&mac0_pins_a>;
+			phy-reset-gpios = <&gpio4 13 0>; /* MX28_PAD_ENET0_RX_CLK__GPIO_4_13 */
+			phy-reset-duration = <100>;
+			status = "okay";
+		};
+	};
+
+	regulators {
+		compatible = "simple-bus";
+
+		reg_3p3v: 3p3v {
+			compatible = "regulator-fixed";
+			regulator-name = "3P3V";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&led_pins>;
+
+		led0 {			// Heartbeat
+			label = "evse:red:led0";
+			gpios = <&gpio3 5 0>;
+			linux,default-trigger = "heartbeat";
+		};
+
+		led1 {			// unassigned
+			label = "evse:yellow:led1";
+			gpios = <&gpio3 4 0>;
+			linux,default-trigger = "none";
+		};
+
+		led2 {			// CAN traffic
+			label = "evse:yellow:led2";
+			gpios = <&gpio1 16 0>;
+			linux,default-trigger = "can1-rx";
+		};
+		
+		led3 {			// Boot process
+			label = "evse:green:led3";
+			gpios = <&gpio1 8 0>;
+			linux,default-trigger = "timer";
+		};
+
+	};
+};
