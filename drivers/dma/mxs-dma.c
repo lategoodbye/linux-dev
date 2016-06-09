@@ -867,8 +867,6 @@ static int __init mxs_dma_probe(struct platform_device *pdev)
 		dma_async_device_unregister(&mxs_dma->dma_device);
 	}
 
-	dev_info(mxs_dma->dma_device.dev, "initialized\n");
-
 	return 0;
 }
 
