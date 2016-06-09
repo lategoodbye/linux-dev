@@ -3227,6 +3227,7 @@ static int fec_enet_init(struct net_device *ndev)
 #ifdef CONFIG_OF
 static void fec_reset_phy(struct platform_device *pdev)
 {
+	static bool initial = true;
 	struct device_node *np = pdev->dev.of_node;
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct fec_enet_private *fep = netdev_priv(ndev);
@@ -3235,7 +3236,11 @@ static void fec_reset_phy(struct platform_device *pdev)
 	if (!np)
 		return;
 
-	of_property_read_u32(np, "phy-reset-duration", &msec);
+	if (initial) {
+		initial = false;
+		of_property_read_u32(np, "phy-reset-duration", &msec);
+	}
+
 	/* A sane reset duration should not be longer than 1s */
 	if (msec > 1000)
 		msec = 1;
