@@ -71,6 +71,7 @@ struct mxs_mmc_host {
 	spinlock_t			lock;
 	int				sdio_irq_en;
 	bool				broken_cd;
+	bool				is_ddr;
 };
 
 static int mxs_mmc_get_cd(struct mmc_host *mmc)
@@ -411,6 +412,17 @@ static void mxs_mmc_adtc(struct mxs_mmc_host *host)
 		cmd0 |= BF_SSP(log2_blksz, CMD0_BLOCK_SIZE) |
 			BF_SSP(blocks - 1, CMD0_BLOCK_COUNT);
 	} else {
+		if (host->is_ddr) {
+			cmd0 |= BM_SSP_CMD0_DBL_DATA_RATE_EN;
+
+			/* Make sure POLARITY bit is cleared in DDR mode */
+			writel(BM_SSP_CTRL1_POLARITY, ssp->base +
+			       HW_SSP_CTRL1(ssp) + STMP_OFFSET_REG_CLR);
+		} else {
+			writel(BM_SSP_CTRL1_POLARITY, ssp->base +
+			       HW_SSP_CTRL1(ssp) + STMP_OFFSET_REG_SET);
+		}
+
 		writel(data_size, ssp->base + HW_SSP_XFER_SIZE);
 		writel(BF_SSP(log2_blksz, BLOCK_SIZE_BLOCK_SIZE) |
 		       BF_SSP(blocks - 1, BLOCK_SIZE_BLOCK_COUNT),
@@ -506,6 +518,8 @@ static void mxs_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		host->bus_width = 1;
 	else
 		host->bus_width = 0;
+
+	host->is_ddr = ios->timing == MMC_TIMING_MMC_DDR52;
 
 	if (ios->clock)
 		mxs_ssp_set_clk_rate(&host->ssp, ios->clock);
