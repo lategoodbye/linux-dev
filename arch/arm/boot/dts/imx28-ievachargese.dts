@@ -37,6 +37,7 @@
 					&mmc0_cd_cfg &mmc0_sck_cfg>;
 				bus-width = <8>;
 				status = "okay";
+				non-removable;
 			};
 
 			ssp2: ssp@80014000 {
