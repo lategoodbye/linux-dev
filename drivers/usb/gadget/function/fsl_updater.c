@@ -211,7 +211,7 @@ static int utp_do_read(struct fsg_dev *fsg, void *data, size_t size)
 		/* Wait for the next buffer to become available */
 		bh = fsg->common->next_buffhd_to_fill;
 		while (bh->state != BUF_STATE_EMPTY) {
-			rc = sleep_thread(fsg->common, true);
+			rc = sleep_thread(fsg->common, false);
 			if (rc)
 				return rc;
 		}
@@ -341,7 +341,7 @@ static int utp_do_write(struct fsg_dev *fsg, void *data, size_t size)
 		}
 
 		/* Wait for something to happen */
-		rc = sleep_thread(fsg->common, true);
+		rc = sleep_thread(fsg->common, false);
 		if (rc)
 			return rc;
 	}
@@ -466,7 +466,7 @@ static int utp_send_status(struct fsg_dev *fsg)
 	/* Wait for the next buffer to become available */
 	bh = fsg->common->next_buffhd_to_fill;
 	while (bh->state != BUF_STATE_EMPTY) {
-		rc = sleep_thread(fsg->common, true);
+		rc = sleep_thread(fsg->common, false);
 		if (rc)
 			return rc;
 	}
