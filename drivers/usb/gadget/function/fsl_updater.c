@@ -1,7 +1,7 @@
 /*
  * Freescale UUT driver
  *
- * Copyright 2008-2014 Freescale Semiconductor, Inc.
+ * Copyright 2008-2010 Freescale Semiconductor, Inc.
  * Copyright 2008-2009 Embedded Alley Solutions, Inc All Rights Reserved.
  */
 
@@ -22,8 +22,6 @@ static u64 get_be64(u8 *buf)
 
 static int utp_init(struct fsg_dev *fsg)
 {
-	int ret;
-
 	init_waitqueue_head(&utp_context.wq);
 	init_waitqueue_head(&utp_context.list_full_wq);
 
@@ -37,10 +35,7 @@ static int utp_init(struct fsg_dev *fsg)
 		return -EIO;
 	utp_context.utp_version = 0x1ull;
 	fsg->utp = &utp_context;
-	ret = misc_register(&utp_dev);
-	pr_info("%s: misc_register = %d\n", __func__, ret);
-
-	return ret;
+	return misc_register(&utp_dev);
 }
 
 static void utp_exit(struct fsg_dev *fsg)
@@ -75,11 +70,9 @@ static u32 count_list(struct list_head *l)
 	u32 count = 0;
 	struct list_head *tmp;
 
-	mutex_lock(&utp_context.lock);
 	list_for_each(tmp, l) {
 		count++;
 	}
-	mutex_unlock(&utp_context.lock);
 
 	return count;
 }
@@ -107,7 +100,7 @@ static ssize_t utp_file_read(struct file *file,
 	if (size >= size_to_put)
 		free = !0;
 	if (copy_to_user(buf, &uud->data, size_to_put)) {
-		printk(KERN_INFO "[ %s ] copy error\n", __func__);
+		pr_info("[ %s ] copy error\n", __func__);
 		return -EACCES;
 	}
 	if (free)
@@ -141,7 +134,7 @@ static ssize_t utp_file_write(struct file *file, const char __user *buf,
 	if (uud == NULL)
 		return -ENOMEM;
 	if (copy_from_user(&uud->data, buf, size)) {
-		printk(KERN_INFO "[ %s ] copy error!\n", __func__);
+		pr_info("[ %s ] copy error!\n", __func__);
 		kfree(uud);
 		return -EACCES;
 	}
@@ -368,25 +361,15 @@ static void utp_poll(struct fsg_dev *fsg)
 
 	if (uud) {
 		if (uud->data.flags & UTP_FLAG_STATUS) {
-			printk(KERN_WARNING "%s: exit with status %d\n",
-					__func__, uud->data.status);
+			pr_warn("%s: exit with status %d\n", __func__, uud->data.status);
 			UTP_SS_EXIT(fsg, uud->data.status);
-		} else if (uud->data.flags & UTP_FLAG_REPORT_BUSY) {
-			UTP_SS_BUSY(fsg, --ctx->counter);
 		} else {
-			printk("%s: pass returned.\n", __func__);
+			pr_debug("%s: pass\n", __func__);
 			UTP_SS_PASS(fsg);
 		}
 		utp_user_data_free(uud);
 	} else {
-		if (utp_context.cur_state & UTP_FLAG_DATA) {
-			if (count_list(&ctx->read) < 7) {
-				pr_debug("%s: pass returned in POLL stage. \n", __func__);
-				UTP_SS_PASS(fsg);
-				utp_context.cur_state = 0;
-				return;
-			}
-		}
+		pr_debug("%s: still busy...\n", __func__);
 		UTP_SS_BUSY(fsg, --ctx->counter);
 	}
 }
@@ -399,7 +382,6 @@ static int utp_exec(struct fsg_dev *fsg,
 	struct utp_user_data *uud = NULL, *uud2r;
 	struct utp_context *ctx = UTP_CTX(fsg);
 
-	ctx->counter = 0xFFFF;
 	uud2r = utp_user_data_alloc(cmdsize + 1);
 	if (!uud2r)
 		return -ENOMEM;
@@ -442,6 +424,7 @@ static int utp_exec(struct fsg_dev *fsg,
 		memcpy(ctx->buffer, uud->data.data, uud->data.bufsize);
 		UTP_SS_SIZE(fsg, uud->data.bufsize);
 	} else if (uud->data.flags & UTP_FLAG_REPORT_BUSY) {
+		ctx->counter = 0xFFFF;
 		UTP_SS_BUSY(fsg, ctx->counter);
 	} else if (uud->data.flags & UTP_FLAG_STATUS) {
 		printk(KERN_WARNING "%s: exit with status %d\n", __func__,
@@ -534,14 +517,11 @@ static int utp_handle_message(struct fsg_dev *fsg,
 		kfree(data);
 		break;
 	case UTP_GET: /* data from device to host */
-		pr_debug("%s: GET, %d bytes\n", __func__,
-					fsg->common->data_size);
-		r = utp_do_read(fsg, UTP_CTX(fsg)->buffer,
-					fsg->common->data_size);
+		pr_debug("%s: GET, %d bytes\n", __func__, fsg->common->data_size);
+		r = utp_do_read(fsg, UTP_CTX(fsg)->buffer, fsg->common->data_size);
 		UTP_SS_PASS(fsg);
 		break;
 	case UTP_PUT:
-		utp_context.cur_state =  UTP_FLAG_DATA;
 		pr_debug("%s: PUT, Received %d bytes\n", __func__, fsg->common->data_size);/* data from host to device */
 		uud2r = utp_user_data_alloc(fsg->common->data_size);
 		if (!uud2r)
@@ -585,12 +565,10 @@ static int utp_handle_message(struct fsg_dev *fsg,
 			UTP_SS_PASS(fsg);
 		}
 #endif
-		if (count_list(&UTP_CTX(fsg)->read) < 7) {
-			utp_context.cur_state = 0;
-			UTP_SS_PASS(fsg);
-		} else
-			UTP_SS_BUSY(fsg, UTP_CTX(fsg)->counter);
+		UTP_SS_PASS(fsg);
 
+		wait_event_interruptible(UTP_CTX(fsg)->list_full_wq,
+			count_list(&UTP_CTX(fsg)->read) < 7);
 		break;
 	}
 
