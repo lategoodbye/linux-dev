@@ -32,7 +32,7 @@ static int utp_init(struct fsg_dev *fsg)
 	mutex_init(&utp_context.lock);
 
 	/* the max message is 64KB */
-	utp_context.buffer = vmalloc(0x10000);
+	utp_context.buffer = kmalloc(0x10000, GFP_KERNEL);
 	if (!utp_context.buffer)
 		return -EIO;
 	utp_context.utp_version = 0x1ull;
@@ -45,7 +45,7 @@ static int utp_init(struct fsg_dev *fsg)
 
 static void utp_exit(struct fsg_dev *fsg)
 {
-	vfree(utp_context.buffer);
+	kfree(utp_context.buffer);
 	misc_deregister(&utp_dev);
 }
 
@@ -53,10 +53,9 @@ static struct utp_user_data *utp_user_data_alloc(size_t size)
 {
 	struct utp_user_data *uud;
 
-	uud = vmalloc(size + sizeof(*uud));
+	uud = kzalloc(size + sizeof(*uud), GFP_KERNEL);
 	if (!uud)
 		return uud;
-	memset(uud, 0, size + sizeof(*uud));
 	uud->data.size = size + sizeof(uud->data);
 	INIT_LIST_HEAD(&uud->link);
 	return uud;
@@ -67,7 +66,7 @@ static void utp_user_data_free(struct utp_user_data *uud)
 	mutex_lock(&utp_context.lock);
 	list_del(&uud->link);
 	mutex_unlock(&utp_context.lock);
-	vfree(uud);
+	kfree(uud);
 }
 
 /* Get the number of element for list */
@@ -143,7 +142,7 @@ static ssize_t utp_file_write(struct file *file, const char __user *buf,
 		return -ENOMEM;
 	if (copy_from_user(&uud->data, buf, size)) {
 		printk(KERN_INFO "[ %s ] copy error!\n", __func__);
-		vfree(uud);
+		kfree(uud);
 		return -EACCES;
 	}
 	mutex_lock(&utp_context.lock);
@@ -526,12 +525,13 @@ static int utp_handle_message(struct fsg_dev *fsg,
 		break;
 	case UTP_EXEC:
 		pr_debug("%s: EXEC\n", __func__);
-		data = vmalloc(fsg->common->data_size);
-		memset(data, 0, fsg->common->data_size);
+		data = kzalloc(fsg->common->data_size, GFP_KERNEL);
+		if (!data)
+			return -ENOMEM;
 		/* copy data from usb buffer to utp buffer */
 		utp_do_write(fsg, data, fsg->common->data_size);
 		utp_exec(fsg, data, fsg->common->data_size, param);
-		vfree(data);
+		kfree(data);
 		break;
 	case UTP_GET: /* data from device to host */
 		pr_debug("%s: GET, %d bytes\n", __func__,

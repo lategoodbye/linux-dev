@@ -19,7 +19,6 @@
 
 #include <linux/miscdevice.h>
 #include <linux/list.h>
-#include <linux/vmalloc.h>
 #include <linux/ioctl.h>
 /* #include <mach/hardware.h> */
 
