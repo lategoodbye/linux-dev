@@ -26,10 +26,6 @@
 
 	apb@80000000 {
 		apbh@80000000 {
-			hsadc@80002000 {
-				status = "okay";
-			};
-
 			ssp0: ssp@80010000 {
 				compatible = "fsl,imx28-mmc";
 				pinctrl-names = "default";
