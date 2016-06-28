@@ -324,6 +324,10 @@ static int hw_usb_reset(struct ci_hdrc *ci)
 	/* clear complete status */
 	hw_write(ci, OP_ENDPTCOMPLETE,  0,  0);
 
+	/* wait until all bits cleared */
+	while (hw_read(ci, OP_ENDPTPRIME, ~0))
+		udelay(10);             /* not RTOS friendly */
+
 	/* reset all endpoints ? */
 
 	/* reset internal status and wait for further instructions
