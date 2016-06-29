@@ -22,6 +22,8 @@ static u64 get_be64(u8 *buf)
 
 static int utp_init(struct fsg_dev *fsg)
 {
+	int ret;
+
 	init_waitqueue_head(&utp_context.wq);
 	init_waitqueue_head(&utp_context.list_full_wq);
 
@@ -32,16 +34,22 @@ static int utp_init(struct fsg_dev *fsg)
 	/* the max message is 64KB */
 	utp_context.buffer = kmalloc(0x10000, GFP_KERNEL);
 	if (!utp_context.buffer)
-		return -EIO;
+		return -ENOMEM;
 	utp_context.utp_version = 0x1ull;
 	fsg->utp = &utp_context;
-	return misc_register(&utp_dev);
+	ret = misc_register(&utp_dev);
+	if (ret)
+		kfree(utp_context.buffer);
+
+	pr_info("%s: misc_register = %d\n", __func__, ret);
+
+	return ret;
 }
 
 static void utp_exit(struct fsg_dev *fsg)
 {
-	kfree(utp_context.buffer);
 	misc_deregister(&utp_dev);
+	kfree(utp_context.buffer);
 }
 
 static struct utp_user_data *utp_user_data_alloc(size_t size)

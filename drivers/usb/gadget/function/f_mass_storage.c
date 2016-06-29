@@ -3139,7 +3139,9 @@ static int fsg_bind(struct usb_configuration *c, struct usb_function *f)
 	fsg->interface_number = i;
 
 #ifdef CONFIG_FSL_UTP
-	utp_init(fsg);
+	ret = utp_init(fsg);
+	if (ret)
+		return ret;
 #endif
 
 	/* Find all the endpoints we will use */
@@ -3180,6 +3182,9 @@ static int fsg_bind(struct usb_configuration *c, struct usb_function *f)
 	return 0;
 
 autoconf_fail:
+#ifdef CONFIG_FSL_UTP
+	utp_exit(fsg);
+#endif
 	ERROR(fsg, "unable to autoconfigure all endpoints\n");
 	return -ENOTSUPP;
 }
