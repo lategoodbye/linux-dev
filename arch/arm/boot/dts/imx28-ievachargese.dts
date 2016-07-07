@@ -244,28 +244,28 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&led_pins>;
 
-		led0 {			// Heartbeat
+		led0 {
 			label = "evse:red:led0";
 			gpios = <&gpio3 5 0>;
-			linux,default-trigger = "heartbeat";
-		};
-
-		led1 {			// unassigned
-			label = "evse:yellow:led1";
-			gpios = <&gpio3 4 0>;
 			linux,default-trigger = "none";
 		};
 
-		led2 {			// CAN traffic
+		led1 {
+			label = "evse:yellow:led1";
+			gpios = <&gpio3 4 0>;
+			linux,default-trigger = "heartbeat";
+		};
+
+		led2 {
 			label = "evse:yellow:led2";
 			gpios = <&gpio1 16 0>;
-			linux,default-trigger = "can1-rx";
+			linux,default-trigger = "none";
 		};
 		
-		led3 {			// Boot process
+		led3 {
 			label = "evse:green:led3";
 			gpios = <&gpio1 8 0>;
-			linux,default-trigger = "timer";
+			linux,default-trigger = "none";
 		};
 
 	};
