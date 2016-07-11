@@ -1031,7 +1031,7 @@ __acquires(ci->lock)
 			num  = le16_to_cpu(req.wIndex);
 			dir = num & USB_ENDPOINT_DIR_MASK;
 			num &= USB_ENDPOINT_NUMBER_MASK;
-			if (dir == TX)
+			if (dir == USB_DIR_IN)
 				num += ci->hw_ep_max / 2;
 			if (!ci->ci_hw_ep[num].wedge) {
 				spin_unlock(&ci->lock);
@@ -1082,7 +1082,7 @@ __acquires(ci->lock)
 			num  = le16_to_cpu(req.wIndex);
 			dir = num & USB_ENDPOINT_DIR_MASK;
 			num &= USB_ENDPOINT_NUMBER_MASK;
-			if (dir == TX)
+			if (dir == USB_DIR_IN)
 				num += ci->hw_ep_max / 2;
 
 			spin_unlock(&ci->lock);
