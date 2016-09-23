@@ -515,6 +515,20 @@ config VEXPRESS_SYSCFG
 	  bus. System Configuration interface is one of the possible means
 	  of generating transactions on this bus.
 
+config FSL_OTP
+	tristate "Freescale On-Chip OTP Memory Support"
+	depends on SOC_IMX28
+	help
+	  If you say Y here, you will get support for a SysFS interface for
+	  the One Time Programmable memory pages that are stored on the
+	  iMX28 processor.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called fsl_otp.
+
+	  If unsure, it is safe to say N.
+
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
