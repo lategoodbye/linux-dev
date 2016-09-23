@@ -196,7 +196,10 @@ static int hw_ep_prime(struct ci_hdrc *ci, int num, int dir, int is_ctrl)
 
 	hw_write(ci, OP_ENDPTPRIME, ~0, BIT(n));
 
-	cpu_relax();
+	while (hw_read(ci, OP_ENDPTPRIME, BIT(n)))
+		cpu_relax();
+	if (is_ctrl && dir == RX && hw_read(ci, OP_ENDPTSETUPSTAT, BIT(num)))
+		return -EAGAIN;
 
 	/* status shoult be tested according with manual but it doesn't work */
 	return 0;
