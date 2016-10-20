@@ -681,7 +681,7 @@ static int mxs_mmc_probe(struct platform_device *pdev)
 	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
 
 	mmc->max_blk_size = 512;
-	mmc->max_segs = 256;
+	mmc->max_segs = 0xffff / mmc->max_blk_size;
 	mmc->max_blk_count = (ssp_is_old(ssp)) ? 0xff : 0xffffff;
 	mmc->max_req_size = (ssp_is_old(ssp)) ? 0xffff : 0xffffffff;
 	mmc->max_seg_size = dma_get_max_seg_size(ssp->dmach->device->dev);
