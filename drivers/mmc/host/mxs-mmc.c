@@ -526,12 +526,10 @@ static void mxs_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	if (ios->timing == MMC_TIMING_MMC_DDR52) {
 		host->is_ddr = true;
-		dev_info(mmc_dev(host->mmc), "Enable DDR\n");
 		writel(BM_SSP_CTRL1_POLARITY, ssp->base +
 			HW_SSP_CTRL1(ssp) + STMP_OFFSET_REG_CLR);
 	} else {
 		host->is_ddr = false;
-		dev_info(mmc_dev(host->mmc), "Disable DDR\n");
 		writel(BM_SSP_CTRL1_POLARITY, ssp->base + HW_SSP_CTRL1(ssp) +
 		       STMP_OFFSET_REG_SET);
 	}
