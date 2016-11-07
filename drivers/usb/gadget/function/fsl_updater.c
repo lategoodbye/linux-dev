@@ -428,6 +428,11 @@ static int utp_exec(struct fsg_dev *fsg,
 	}
 	mutex_unlock(&ctx->lock);
 
+	if (!uud) {
+		UTP_SS_PASS(fsg);
+		return 0;
+	}
+
 	if (uud->data.flags & UTP_FLAG_DATA) {
 		memcpy(ctx->buffer, uud->data.data, uud->data.bufsize);
 		UTP_SS_SIZE(fsg, uud->data.bufsize);
