@@ -1101,71 +1101,74 @@ service_callback(struct vchiq_instance *instance, enum vchiq_reason reason,
 		user_service, service->localport, user_service->userdata,
 		reason, header, instance, bulk_userdata);
 
-	if (header && user_service->is_vchi) {
-		spin_lock(&service->state->msg_queue_spinlock);
-		while (user_service->msg_insert ==
-			(user_service->msg_remove + MSG_QUEUE_SIZE)) {
-			spin_unlock(&service->state->msg_queue_spinlock);
-			DEBUG_TRACE(SERVICE_CALLBACK_LINE);
-			DEBUG_COUNT(MSG_QUEUE_FULL_COUNT);
-			dev_dbg(service->state->dev, "arm: msg queue full\n");
-			/*
-			 * If there is no MESSAGE_AVAILABLE in the completion
-			 * queue, add one
-			 */
-			if ((user_service->message_available_pos -
-				instance->completion_remove) < 0) {
-				int status;
+	if (!header || !user_service->is_vchi)
+		goto service_put;
 
-				dev_dbg(instance->state->dev,
-					"arm: Inserting extra MESSAGE_AVAILABLE\n");
-				DEBUG_TRACE(SERVICE_CALLBACK_LINE);
-				status = add_completion(instance, reason, NULL, user_service,
-							bulk_userdata);
-				if (status) {
-					DEBUG_TRACE(SERVICE_CALLBACK_LINE);
-					vchiq_service_put(service);
-					return status;
-				}
-			}
-
-			DEBUG_TRACE(SERVICE_CALLBACK_LINE);
-			if (wait_for_completion_interruptible(&user_service->remove_event)) {
-				dev_dbg(instance->state->dev, "arm: interrupted\n");
-				DEBUG_TRACE(SERVICE_CALLBACK_LINE);
-				vchiq_service_put(service);
-				return -EAGAIN;
-			} else if (instance->closing) {
-				dev_dbg(instance->state->dev, "arm: closing\n");
-				DEBUG_TRACE(SERVICE_CALLBACK_LINE);
-				vchiq_service_put(service);
-				return -EINVAL;
-			}
-			DEBUG_TRACE(SERVICE_CALLBACK_LINE);
-			spin_lock(&service->state->msg_queue_spinlock);
-		}
-
-		user_service->msg_queue[user_service->msg_insert &
-			(MSG_QUEUE_SIZE - 1)] = header;
-		user_service->msg_insert++;
-
-		/*
-		 * If there is a thread waiting in DEQUEUE_MESSAGE, or if
-		 * there is a MESSAGE_AVAILABLE in the completion queue then
-		 * bypass the completion queue.
-		 */
-		if (((user_service->message_available_pos -
-			instance->completion_remove) >= 0) ||
-			user_service->dequeue_pending) {
-			user_service->dequeue_pending = 0;
-			skip_completion = true;
-		}
-
+	spin_lock(&service->state->msg_queue_spinlock);
+	while (user_service->msg_insert ==
+		(user_service->msg_remove + MSG_QUEUE_SIZE)) {
 		spin_unlock(&service->state->msg_queue_spinlock);
-		complete(&user_service->insert_event);
+		DEBUG_TRACE(SERVICE_CALLBACK_LINE);
+		DEBUG_COUNT(MSG_QUEUE_FULL_COUNT);
+		dev_dbg(service->state->dev, "arm: msg queue full\n");
+		/*
+		 * If there is no MESSAGE_AVAILABLE in the completion
+		 * queue, add one
+		 */
+		if ((user_service->message_available_pos -
+			instance->completion_remove) < 0) {
+			int status;
 
-		header = NULL;
+			dev_dbg(instance->state->dev,
+				"arm: Inserting extra MESSAGE_AVAILABLE\n");
+			DEBUG_TRACE(SERVICE_CALLBACK_LINE);
+			status = add_completion(instance, reason, NULL, user_service,
+						bulk_userdata);
+			if (status) {
+				DEBUG_TRACE(SERVICE_CALLBACK_LINE);
+				vchiq_service_put(service);
+				return status;
+			}
+		}
+
+		DEBUG_TRACE(SERVICE_CALLBACK_LINE);
+		if (wait_for_completion_interruptible(&user_service->remove_event)) {
+			dev_dbg(instance->state->dev, "arm: interrupted\n");
+			DEBUG_TRACE(SERVICE_CALLBACK_LINE);
+			vchiq_service_put(service);
+			return -EAGAIN;
+		} else if (instance->closing) {
+			dev_dbg(instance->state->dev, "arm: closing\n");
+			DEBUG_TRACE(SERVICE_CALLBACK_LINE);
+			vchiq_service_put(service);
+			return -EINVAL;
+		}
+		DEBUG_TRACE(SERVICE_CALLBACK_LINE);
+		spin_lock(&service->state->msg_queue_spinlock);
 	}
+
+	user_service->msg_queue[user_service->msg_insert &
+		(MSG_QUEUE_SIZE - 1)] = header;
+	user_service->msg_insert++;
+
+	/*
+	 * If there is a thread waiting in DEQUEUE_MESSAGE, or if
+	 * there is a MESSAGE_AVAILABLE in the completion queue then
+	 * bypass the completion queue.
+	 */
+	if (((user_service->message_available_pos -
+		instance->completion_remove) >= 0) ||
+		user_service->dequeue_pending) {
+		user_service->dequeue_pending = 0;
+		skip_completion = true;
+	}
+
+	spin_unlock(&service->state->msg_queue_spinlock);
+	complete(&user_service->insert_event);
+
+	header = NULL;
+
+service_put:
 	DEBUG_TRACE(SERVICE_CALLBACK_LINE);
 	vchiq_service_put(service);
 
