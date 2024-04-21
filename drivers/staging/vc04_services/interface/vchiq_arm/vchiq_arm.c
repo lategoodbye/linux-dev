@@ -1298,7 +1298,6 @@ vchiq_keepalive_thread_func(void *v)
 	int status;
 	struct vchiq_instance *instance;
 	unsigned int ka_handle;
-	int ret;
 
 	struct vchiq_service_params_kernel params = {
 		.fourcc      = VCHIQ_MAKE_FOURCC('K', 'E', 'E', 'P'),
@@ -1307,9 +1306,10 @@ vchiq_keepalive_thread_func(void *v)
 		.version_min = KEEPALIVE_VER_MIN
 	};
 
-	ret = vchiq_initialise(state, &instance);
-	if (ret) {
-		dev_err(state->dev, "suspend: %s: vchiq_initialise failed %d\n", __func__, ret);
+	status = vchiq_initialise(state, &instance);
+	if (status) {
+		dev_err(state->dev, "suspend: %s: vchiq_initialise failed %d\n",
+			__func__, status);
 		goto exit;
 	}
 
