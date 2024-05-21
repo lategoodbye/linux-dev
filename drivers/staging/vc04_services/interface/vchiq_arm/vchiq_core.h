@@ -196,6 +196,8 @@ struct vchiq_service {
 
 	struct completion remove_event;
 	struct completion bulk_remove_event;
+
+	/* Serialise access to the bulk transfer queues */
 	struct mutex bulk_mutex;
 
 	struct service_stats_struct {
@@ -312,7 +314,7 @@ struct vchiq_state {
 	/* Event indicating connect message received */
 	struct completion connect;
 
-	/* Mutex protecting services */
+	/* Mutex protecting service creation */
 	struct mutex mutex;
 	struct vchiq_instance **instance;
 
@@ -341,16 +343,22 @@ struct vchiq_state {
 	char *rx_data;
 	struct vchiq_slot_info *rx_info;
 
+	/* Serialise access to the main message slots */
 	struct mutex slot_mutex;
 
+	/* Serialise slot refcount updates */
 	struct mutex recycle_mutex;
 
+	/* Serialise access to the single synchronous message slot */
 	struct mutex sync_mutex;
 
+	/* Serialise access to the message queues to userspace */
 	spinlock_t msg_queue_spinlock;
 
+	/* Serialise completion of blocking transfers */
 	spinlock_t bulk_waiter_spinlock;
 
+	/* Serialise updates to slot quota data */
 	spinlock_t quota_spinlock;
 
 	/*
