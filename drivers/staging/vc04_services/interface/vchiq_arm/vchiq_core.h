@@ -423,18 +423,6 @@ struct bulk_waiter {
 	int actual;
 };
 
-struct vchiq_config {
-	unsigned int max_msg_size;
-	unsigned int bulk_threshold;	/* The message size above which it
-					 * is better to use a bulk transfer
-					 * (<= max_msg_size)
-					 */
-	unsigned int max_outstanding_bulks;
-	unsigned int max_services;
-	short version;      /* The version of VCHIQ */
-	short version_min;  /* The minimum compatible version of VCHIQ */
-};
-
 extern spinlock_t bulk_waiter_spinlock;
 
 extern const char *
