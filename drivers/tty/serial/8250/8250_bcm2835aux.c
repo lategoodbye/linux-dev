@@ -13,7 +13,6 @@
  */
 
 #include <linux/clk.h>
-#include <linux/console.h>
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -217,13 +216,8 @@ MODULE_DEVICE_TABLE(acpi, bcm2835aux_serial_acpi_match);
 static int __maybe_unused bcm2835aux_suspend(struct device *dev)
 {
 	struct bcm2835aux_data *data = dev_get_drvdata(dev);
-	struct uart_8250_port *port8250 = serial8250_get_port(data->line);
-	struct uart_port *port = &port8250->port;
 
 	serial8250_suspend_port(data->line);
-
-	if (!uart_console(port) || console_suspend_enabled)
-		clk_disable_unprepare(data->clk);
 
 	return 0;
 }
@@ -231,15 +225,6 @@ static int __maybe_unused bcm2835aux_suspend(struct device *dev)
 static int __maybe_unused bcm2835aux_resume(struct device *dev)
 {
 	struct bcm2835aux_data *data = dev_get_drvdata(dev);
-	struct uart_8250_port *port8250 = serial8250_get_port(data->line);
-	struct uart_port *port = &port8250->port;
-	int ret;
-
-	if (!uart_console(port) || console_suspend_enabled) {
-		ret = clk_prepare_enable(data->clk);
-		if (ret)
-			return ret;
-	}
 
 	serial8250_resume_port(data->line);
 
