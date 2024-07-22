@@ -4352,6 +4352,15 @@ static int _dwc2_hcd_suspend(struct usb_hcd *hcd)
 	if (hsotg->flags.b.port_connect_status == 0)
 		goto skip_power_saving;
 
+	if (hsotg->has_pm_domains) {
+		ret = dwc2_enter_poweroff(hsotg, 1);
+		if (ret)
+			dev_err(hsotg->dev, "enter poweroff failed\n");
+		/* After entering suspend, hardware is not accessible */
+		clear_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
+		goto skip_power_saving;
+	}
+
 	switch (hsotg->params.power_down) {
 	case DWC2_POWER_DOWN_PARAM_PARTIAL:
 		/* Enter partial_power_down */
@@ -4422,6 +4431,18 @@ static int _dwc2_hcd_resume(struct usb_hcd *hcd)
 
 	if (hsotg->lx_state != DWC2_L2)
 		goto unlock;
+
+	if (hsotg->has_pm_domains) {
+		ret = dwc2_exit_poweroff(hsotg, 1);
+		if (ret)
+			dev_err(hsotg->dev, "exit poweroff failed\n");
+		/*
+		 * Set HW accessible bit before powering on the controller
+		 * since an interrupt may rise.
+		 */
+		set_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
+		goto unlock;
+	}
 
 	hprt0 = dwc2_read_hprt0(hsotg);
 
@@ -5992,4 +6013,57 @@ void dwc2_host_exit_clock_gating(struct dwc2_hsotg *hsotg, int rem_wakeup)
 		mod_timer(&hsotg->wkp_timer,
 			  jiffies + msecs_to_jiffies(71));
 	}
+}
+
+int dwc2_host_enter_poweroff(struct dwc2_hsotg *hsotg)
+{
+	int ret;
+
+	dev_dbg(hsotg->dev, "Entering host power off.\n");
+
+	/* Backup all registers */
+	ret = dwc2_backup_global_registers(hsotg);
+	if (ret) {
+		dev_err(hsotg->dev, "%s: failed to backup global registers\n",
+			__func__);
+		return ret;
+	}
+
+	ret = dwc2_backup_host_registers(hsotg);
+	if (ret) {
+		dev_err(hsotg->dev, "%s: failed to backup host registers\n",
+			__func__);
+		return ret;
+	}
+
+	hsotg->lx_state = DWC2_L2;
+
+	dev_dbg(hsotg->dev, "Entering host power off completed.\n");
+	return ret;
+}
+
+int dwc2_host_exit_poweroff(struct dwc2_hsotg *hsotg)
+{
+	int ret;
+
+	dev_dbg(hsotg->dev, "Exiting host power off.\n");
+
+	ret = dwc2_restore_global_registers(hsotg);
+	if (ret) {
+		dev_err(hsotg->dev, "%s: failed to restore registers\n",
+			__func__);
+		return ret;
+	}
+
+	ret = dwc2_restore_host_registers(hsotg);
+	if (ret) {
+		dev_err(hsotg->dev, "%s: failed to restore host registers\n",
+			__func__);
+		return ret;
+	}
+
+	hsotg->lx_state = DWC2_L0;
+
+	dev_dbg(hsotg->dev, "Exiting host power off completed.\n");
+	return ret;
 }

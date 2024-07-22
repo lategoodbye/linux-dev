@@ -503,6 +503,9 @@ static int dwc2_driver_probe(struct platform_device *dev)
 		of_property_read_bool(dev->dev.of_node,
 				      "snps,need-phy-for-wake");
 
+	hsotg->has_pm_domains = of_property_read_bool(dev->dev.of_node,
+						      "power-domains");
+
 	/*
 	 * Before performing any core related operations
 	 * check core version.
