@@ -4352,15 +4352,6 @@ static int _dwc2_hcd_suspend(struct usb_hcd *hcd)
 	if (hsotg->flags.b.port_connect_status == 0)
 		goto skip_power_saving;
 
-	if (hsotg->has_pm_domains) {
-		ret = dwc2_enter_poweroff(hsotg, 1);
-		if (ret)
-			dev_err(hsotg->dev, "enter poweroff failed\n");
-		/* After entering suspend, hardware is not accessible */
-		clear_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
-		goto skip_power_saving;
-	}
-
 	switch (hsotg->params.power_down) {
 	case DWC2_POWER_DOWN_PARAM_PARTIAL:
 		/* Enter partial_power_down */
@@ -4431,18 +4422,6 @@ static int _dwc2_hcd_resume(struct usb_hcd *hcd)
 
 	if (hsotg->lx_state != DWC2_L2)
 		goto unlock;
-
-	if (hsotg->has_pm_domains) {
-		ret = dwc2_exit_poweroff(hsotg, 1);
-		if (ret)
-			dev_err(hsotg->dev, "exit poweroff failed\n");
-		/*
-		 * Set HW accessible bit before powering on the controller
-		 * since an interrupt may rise.
-		 */
-		set_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
-		goto unlock;
-	}
 
 	hprt0 = dwc2_read_hprt0(hsotg);
 

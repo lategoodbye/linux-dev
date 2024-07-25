@@ -9,6 +9,7 @@
 #define __DWC2_CORE_H__
 
 #include <linux/acpi.h>
+#include <linux/notifier.h>
 #include <linux/phy/phy.h>
 #include <linux/regulator/consumer.h>
 #include <linux/usb/gadget.h>
@@ -1081,6 +1082,8 @@ struct dwc2_hsotg {
 	struct regulator *vbus_supply;
 	struct regulator *usb33d;
 
+	struct notifier_block genpd_nb;
+
 	spinlock_t lock;
 	void *priv;
 	int     irq;
@@ -1317,8 +1320,8 @@ int dwc2_exit_partial_power_down(struct dwc2_hsotg *hsotg, int rem_wakeup,
 int dwc2_enter_hibernation(struct dwc2_hsotg *hsotg, int is_host);
 int dwc2_exit_hibernation(struct dwc2_hsotg *hsotg, int rem_wakeup,
 		int reset, int is_host);
-int dwc2_enter_poweroff(struct dwc2_hsotg *hsotg, int is_host);
-int dwc2_exit_poweroff(struct dwc2_hsotg *hsotg, int is_host);
+int dwc2_enter_poweroff(struct dwc2_hsotg *hsotg);
+int dwc2_exit_poweroff(struct dwc2_hsotg *hsotg);
 void dwc2_init_fs_ls_pclk_sel(struct dwc2_hsotg *hsotg);
 int dwc2_phy_init(struct dwc2_hsotg *hsotg, bool select_phy);
 
