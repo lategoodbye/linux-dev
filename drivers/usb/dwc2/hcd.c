@@ -5993,3 +5993,56 @@ void dwc2_host_exit_clock_gating(struct dwc2_hsotg *hsotg, int rem_wakeup)
 			  jiffies + msecs_to_jiffies(71));
 	}
 }
+
+int dwc2_host_enter_poweroff(struct dwc2_hsotg *hsotg)
+{
+	int ret;
+
+	dev_dbg(hsotg->dev, "Entering host power off.\n");
+
+	/* Backup all registers */
+	ret = dwc2_backup_global_registers(hsotg);
+	if (ret) {
+		dev_err(hsotg->dev, "%s: failed to backup global registers\n",
+			__func__);
+		return ret;
+	}
+
+	ret = dwc2_backup_host_registers(hsotg);
+	if (ret) {
+		dev_err(hsotg->dev, "%s: failed to backup host registers\n",
+			__func__);
+		return ret;
+	}
+
+	hsotg->lx_state = DWC2_L2;
+
+	dev_dbg(hsotg->dev, "Entering host power off completed.\n");
+	return ret;
+}
+
+int dwc2_host_exit_poweroff(struct dwc2_hsotg *hsotg)
+{
+	int ret;
+
+	dev_dbg(hsotg->dev, "Exiting host power off.\n");
+
+	ret = dwc2_restore_global_registers(hsotg);
+	if (ret) {
+		dev_err(hsotg->dev, "%s: failed to restore registers\n",
+			__func__);
+		return ret;
+	}
+
+	ret = dwc2_restore_host_registers(hsotg);
+	if (ret) {
+		dev_err(hsotg->dev, "%s: failed to restore host registers\n",
+			__func__);
+		return ret;
+	}
+
+	hsotg->lx_state = DWC2_L0;
+
+	dev_dbg(hsotg->dev, "Exiting host power off completed.\n");
+	return ret;
+}
