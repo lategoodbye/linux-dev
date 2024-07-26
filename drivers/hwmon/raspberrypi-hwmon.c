@@ -103,6 +103,26 @@ static const struct hwmon_chip_info rpi_chip_info = {
 	.info = rpi_info,
 };
 
+static int rpi_hwmon_suspend(struct device *dev)
+{
+	struct rpi_hwmon_data *data = dev_get_drvdata(dev);
+
+	cancel_delayed_work_sync(&data->get_values_poll_work);
+	return 0;
+}
+
+static int rpi_hwmon_resume(struct device *dev)
+{
+	struct rpi_hwmon_data *data = dev_get_drvdata(dev);
+
+	schedule_delayed_work(&data->get_values_poll_work, 2 * HZ);
+	return 0;
+}
+
+static const struct dev_pm_ops rpi_hwmon_dev_pm_ops = {
+	SYSTEM_SLEEP_PM_OPS(rpi_hwmon_suspend, rpi_hwmon_resume)
+};
+
 static int rpi_hwmon_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -138,6 +158,7 @@ static struct platform_driver rpi_hwmon_driver = {
 	.probe = rpi_hwmon_probe,
 	.driver = {
 		.name = "raspberrypi-hwmon",
+		.pm = pm_ptr(&rpi_hwmon_dev_pm_ops),
 	},
 };
 module_platform_driver(rpi_hwmon_driver);
