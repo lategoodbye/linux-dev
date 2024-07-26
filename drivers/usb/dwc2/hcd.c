@@ -6015,10 +6015,8 @@ int dwc2_host_enter_poweroff(struct dwc2_hsotg *hsotg)
 		return ret;
 	}
 
-	hsotg->lx_state = DWC2_L2;
-
 	dev_dbg(hsotg->dev, "Entering host power off completed.\n");
-	return ret;
+	return 0;
 }
 
 int dwc2_host_exit_poweroff(struct dwc2_hsotg *hsotg)
@@ -6041,8 +6039,6 @@ int dwc2_host_exit_poweroff(struct dwc2_hsotg *hsotg)
 		return ret;
 	}
 
-	hsotg->lx_state = DWC2_L0;
-
 	dev_dbg(hsotg->dev, "Exiting host power off completed.\n");
-	return ret;
+	return 0;
 }
