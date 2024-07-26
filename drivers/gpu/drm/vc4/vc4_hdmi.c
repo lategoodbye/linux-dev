@@ -477,8 +477,8 @@ static int vc4_hdmi_connector_detect_ctx(struct drm_connector *connector,
 
 	ret = pm_runtime_resume_and_get(&vc4_hdmi->pdev->dev);
 	if (ret) {
-		drm_err(connector->dev, "Failed to retain HDMI power domain: %d\n",
-			ret);
+		drm_err_once(connector->dev, "Failed to retain HDMI power domain: %d\n",
+			     ret);
 		return connector_status_unknown;
 	}
 
