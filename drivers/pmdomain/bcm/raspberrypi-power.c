@@ -78,11 +78,6 @@ static int rpi_domain_off(struct generic_pm_domain *domain)
 	return rpi_firmware_set_power(domain, false);
 }
 
-static int rpi_domain_never_off(struct generic_pm_domain *domain)
-{
-	return 0;
-}
-
 static int rpi_domain_on(struct generic_pm_domain *domain)
 {
 	return rpi_firmware_set_power(domain, true);
@@ -98,11 +93,7 @@ static void rpi_common_init_power_domain(struct rpi_power_domains *rpi_domains,
 	dom->base.name = name;
 	dom->base.flags = GENPD_FLAG_ACTIVE_WAKEUP;
 	dom->base.power_on = rpi_domain_on;
-
-	if (strcmp("V3D", name) == 0)
-		dom->base.power_off = rpi_domain_never_off;
-	else
-		dom->base.power_off = rpi_domain_off;
+	dom->base.power_off = rpi_domain_off;
 
 	/*
 	 * Treat all power domains as off at boot.
