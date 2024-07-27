@@ -441,20 +441,11 @@ static int vc4_v3d_bind(struct device *dev, struct device *master, void *data)
 	vc4->v3d = v3d;
 	v3d->vc4 = vc4;
 
-	v3d->clk = devm_clk_get(dev, NULL);
+	v3d->clk = devm_clk_get_optional(dev, NULL);
 	if (IS_ERR(v3d->clk)) {
 		int ret = PTR_ERR(v3d->clk);
 
-		if (ret == -ENOENT) {
-			/* bcm2835 didn't have a clock reference in the DT. */
-			ret = 0;
-			v3d->clk = NULL;
-		} else {
-			if (ret != -EPROBE_DEFER)
-				dev_err(dev, "Failed to get V3D clock: %d\n",
-					ret);
-			return ret;
-		}
+		return dev_err_probe(dev, ret, "Failed to get V3D clock\n");
 	}
 
 	ret = platform_get_irq(pdev, 0);
