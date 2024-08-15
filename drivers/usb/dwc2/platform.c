@@ -16,7 +16,6 @@
 #include <linux/platform_device.h>
 #include <linux/phy/phy.h>
 #include <linux/platform_data/s3c-hsotg.h>
-#include <linux/pm_domain.h>
 #include <linux/reset.h>
 
 #include <linux/usb/of.h>
@@ -308,8 +307,6 @@ static void dwc2_driver_remove(struct platform_device *dev)
 	struct dwc2_gregs_backup *gr;
 	int ret = 0;
 
-	dev_pm_genpd_remove_notifier(&dev->dev);
-
 	gr = &hsotg->gr_backup;
 
 	/* Exit Hibernation when driver is removed. */
@@ -422,31 +419,6 @@ int dwc2_check_core_version(struct dwc2_hsotg *hsotg)
 		hw->snpsid >> 12 & 0xf, hw->snpsid >> 8 & 0xf,
 		hw->snpsid >> 4 & 0xf, hw->snpsid & 0xf, hw->snpsid);
 	return 0;
-}
-
-static int dwc2_power_notifier(struct notifier_block *nb,
-			       unsigned long action, void *data)
-{
-	struct dwc2_hsotg *hsotg = container_of(nb, struct dwc2_hsotg,
-						genpd_nb);
-	int ret;
-
-	switch (action) {
-	case GENPD_NOTIFY_ON:
-		ret = dwc2_exit_poweroff(hsotg);
-		if (ret)
-			dev_err(hsotg->dev, "exit poweroff failed\n");
-		break;
-	case GENPD_NOTIFY_PRE_OFF:
-		ret = dwc2_enter_poweroff(hsotg);
-		if (ret)
-			dev_err(hsotg->dev, "enter poweroff failed\n");
-		break;
-	default:
-		break;
-	}
-
-	return NOTIFY_OK;
 }
 
 /**
@@ -648,10 +620,6 @@ static int dwc2_driver_probe(struct platform_device *dev)
 		}
 	}
 #endif /* CONFIG_USB_DWC2_PERIPHERAL || CONFIG_USB_DWC2_DUAL_ROLE */
-
-	hsotg->genpd_nb.notifier_call = dwc2_power_notifier;
-	dev_pm_genpd_add_notifier(&dev->dev, &hsotg->genpd_nb);
-
 	return 0;
 
 #if IS_ENABLED(CONFIG_USB_DWC2_PERIPHERAL) || \

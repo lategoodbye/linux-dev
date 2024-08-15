@@ -9,7 +9,6 @@
 #define __DWC2_CORE_H__
 
 #include <linux/acpi.h>
-#include <linux/notifier.h>
 #include <linux/phy/phy.h>
 #include <linux/regulator/consumer.h>
 #include <linux/usb/gadget.h>
@@ -1081,8 +1080,6 @@ struct dwc2_hsotg {
 	struct regulator *vbus_supply;
 	struct regulator *usb33d;
 
-	struct notifier_block genpd_nb;
-
 	spinlock_t lock;
 	void *priv;
 	int     irq;
@@ -1319,8 +1316,6 @@ int dwc2_exit_partial_power_down(struct dwc2_hsotg *hsotg, int rem_wakeup,
 int dwc2_enter_hibernation(struct dwc2_hsotg *hsotg, int is_host);
 int dwc2_exit_hibernation(struct dwc2_hsotg *hsotg, int rem_wakeup,
 		int reset, int is_host);
-int dwc2_enter_poweroff(struct dwc2_hsotg *hsotg);
-int dwc2_exit_poweroff(struct dwc2_hsotg *hsotg);
 void dwc2_init_fs_ls_pclk_sel(struct dwc2_hsotg *hsotg);
 int dwc2_phy_init(struct dwc2_hsotg *hsotg, bool select_phy);
 
@@ -1440,8 +1435,6 @@ int dwc2_hsotg_tx_fifo_total_depth(struct dwc2_hsotg *hsotg);
 int dwc2_hsotg_tx_fifo_average_depth(struct dwc2_hsotg *hsotg);
 void dwc2_gadget_init_lpm(struct dwc2_hsotg *hsotg);
 void dwc2_gadget_program_ref_clk(struct dwc2_hsotg *hsotg);
-int dwc2_gadget_enter_poweroff(struct dwc2_hsotg *hsotg);
-int dwc2_gadget_exit_poweroff(struct dwc2_hsotg *hsotg);
 static inline void dwc2_clear_fifo_map(struct dwc2_hsotg *hsotg)
 { hsotg->fifo_map = 0; }
 #else
@@ -1489,10 +1482,6 @@ static inline int dwc2_hsotg_tx_fifo_average_depth(struct dwc2_hsotg *hsotg)
 { return 0; }
 static inline void dwc2_gadget_init_lpm(struct dwc2_hsotg *hsotg) {}
 static inline void dwc2_gadget_program_ref_clk(struct dwc2_hsotg *hsotg) {}
-static inline int dwc2_gadget_enter_poweroff(struct dwc2_hsotg *hsotg)
-{ return 0; }
-static inline int dwc2_gadget_exit_poweroff(struct dwc2_hsotg *hsotg)
-{ return 0; }
 static inline void dwc2_clear_fifo_map(struct dwc2_hsotg *hsotg) {}
 #endif
 
@@ -1516,8 +1505,6 @@ int dwc2_host_exit_partial_power_down(struct dwc2_hsotg *hsotg,
 void dwc2_host_enter_clock_gating(struct dwc2_hsotg *hsotg);
 void dwc2_host_exit_clock_gating(struct dwc2_hsotg *hsotg, int rem_wakeup);
 bool dwc2_host_can_poweroff_phy(struct dwc2_hsotg *dwc2);
-int dwc2_host_enter_poweroff(struct dwc2_hsotg *hsotg);
-int dwc2_host_exit_poweroff(struct dwc2_hsotg *hsotg);
 static inline void dwc2_host_schedule_phy_reset(struct dwc2_hsotg *hsotg)
 { schedule_work(&hsotg->phy_reset_work); }
 #else
@@ -1557,10 +1544,6 @@ static inline void dwc2_host_exit_clock_gating(struct dwc2_hsotg *hsotg,
 					       int rem_wakeup) {}
 static inline bool dwc2_host_can_poweroff_phy(struct dwc2_hsotg *dwc2)
 { return false; }
-static inline int dwc2_host_enter_poweroff(struct dwc2_hsotg *hsotg)
-{ return 0; }
-static inline int dwc2_host_exit_poweroff(struct dwc2_hsotg *hsotg)
-{ return 0; }
 static inline void dwc2_host_schedule_phy_reset(struct dwc2_hsotg *hsotg) {}
 
 #endif

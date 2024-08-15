@@ -391,22 +391,6 @@ int dwc2_exit_hibernation(struct dwc2_hsotg *hsotg, int rem_wakeup,
 		return dwc2_gadget_exit_hibernation(hsotg, rem_wakeup, reset);
 }
 
-int dwc2_enter_poweroff(struct dwc2_hsotg *hsotg)
-{
-	if (dwc2_is_host_mode(hsotg))
-		return dwc2_host_enter_poweroff(hsotg);
-	else
-		return dwc2_gadget_enter_poweroff(hsotg);
-}
-
-int dwc2_exit_poweroff(struct dwc2_hsotg *hsotg)
-{
-	if (dwc2_is_host_mode(hsotg))
-		return dwc2_host_exit_poweroff(hsotg);
-	else
-		return dwc2_gadget_exit_poweroff(hsotg);
-}
-
 /*
  * Do core a soft reset of the core.  Be careful with this because it
  * resets all the internal state machines of the core.
