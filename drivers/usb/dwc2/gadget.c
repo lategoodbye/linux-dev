@@ -5207,7 +5207,7 @@ int dwc2_backup_device_registers(struct dwc2_hsotg *hsotg)
  *
  * Return: 0 if successful, negative error code otherwise
  */
-int dwc2_restore_device_registers(struct dwc2_hsotg *hsotg, int remote_wakeup)
+int dwc2_restore_device_registers(struct dwc2_hsotg *hsotg, unsigned int flags)
 {
 	struct dwc2_dregs_backup *dr;
 	int i;
@@ -5223,7 +5223,10 @@ int dwc2_restore_device_registers(struct dwc2_hsotg *hsotg, int remote_wakeup)
 	}
 	dr->valid = false;
 
-	if (!remote_wakeup)
+	if (flags & RESTORE_DCFG)
+		dwc2_writel(hsotg, dr->dcfg, DCFG);
+
+	if (flags & RESTORE_DCTL)
 		dwc2_writel(hsotg, dr->dctl, DCTL);
 
 	dwc2_writel(hsotg, dr->daintmsk, DAINTMSK);
@@ -5331,7 +5334,8 @@ int dwc2_gadget_backup_critical_registers(struct dwc2_hsotg *hsotg)
 	return 0;
 }
 
-int dwc2_gadget_restore_critical_registers(struct dwc2_hsotg *hsotg)
+int dwc2_gadget_restore_critical_registers(struct dwc2_hsotg *hsotg,
+					   unsigned int flags)
 {
 	int ret;
 
@@ -5341,8 +5345,7 @@ int dwc2_gadget_restore_critical_registers(struct dwc2_hsotg *hsotg)
 			__func__);
 		return ret;
 	}
-
-	ret = dwc2_restore_device_registers(hsotg, 0);
+	ret = dwc2_restore_device_registers(hsotg, flags);
 	if (ret) {
 		dev_err(hsotg->dev, "%s: failed to restore device registers\n",
 			__func__);
@@ -5448,6 +5451,7 @@ int dwc2_gadget_exit_hibernation(struct dwc2_hsotg *hsotg,
 	u32 gpwrdn;
 	u32 dctl;
 	int ret = 0;
+	unsigned int flags = 0;
 	struct dwc2_gregs_backup *gr;
 	struct dwc2_dregs_backup *dr;
 
@@ -5510,6 +5514,7 @@ int dwc2_gadget_exit_hibernation(struct dwc2_hsotg *hsotg,
 		dctl = dwc2_readl(hsotg, DCTL);
 		dctl |= DCTL_PWRONPRGDONE;
 		dwc2_writel(hsotg, dctl, DCTL);
+		flags |= RESTORE_DCTL;
 	}
 	/* Wait for interrupts which must be cleared */
 	mdelay(2);
@@ -5517,7 +5522,7 @@ int dwc2_gadget_exit_hibernation(struct dwc2_hsotg *hsotg,
 	dwc2_writel(hsotg, 0xffffffff, GINTSTS);
 
 	/* Restore global registers */
-	ret = dwc2_gadget_restore_critical_registers(hsotg);
+	ret = dwc2_gadget_restore_critical_registers(hsotg, flags);
 	if (ret)
 		return ret;
 
@@ -5602,10 +5607,7 @@ int dwc2_gadget_exit_partial_power_down(struct dwc2_hsotg *hsotg,
 {
 	u32 pcgcctl;
 	u32 dctl;
-	struct dwc2_dregs_backup *dr;
 	int ret = 0;
-
-	dr = &hsotg->dr_backup;
 
 	dev_dbg(hsotg->dev, "Exiting device partial Power Down started.\n");
 
@@ -5623,7 +5625,8 @@ int dwc2_gadget_exit_partial_power_down(struct dwc2_hsotg *hsotg,
 
 	udelay(100);
 	if (restore) {
-		ret = dwc2_gadget_restore_critical_registers(hsotg);
+		ret = dwc2_gadget_restore_critical_registers(hsotg,
+							     RESTORE_DCFG);
 		if (ret)
 			return ret;
 	}

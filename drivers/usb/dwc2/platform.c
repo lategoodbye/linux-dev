@@ -715,7 +715,8 @@ static int dwc2_restore_critical_registers(struct dwc2_hsotg *hsotg)
 	if (gr->gintsts & GINTSTS_CURMODE_HOST)
 		return dwc2_host_restore_critical_registers(hsotg);
 
-	return dwc2_gadget_restore_critical_registers(hsotg);
+	return dwc2_gadget_restore_critical_registers(hsotg, RESTORE_DCTL |
+						      RESTORE_DCFG);
 }
 
 static int __maybe_unused dwc2_resume(struct device *dev)
