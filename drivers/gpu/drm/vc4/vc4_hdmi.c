@@ -3427,10 +3427,8 @@ static const struct of_device_id vc4_hdmi_dt_match[] = {
 };
 
 static const struct dev_pm_ops vc4_hdmi_pm_ops = {
-	SET_RUNTIME_PM_OPS(vc4_hdmi_runtime_suspend,
-			   vc4_hdmi_runtime_resume,
-			   NULL)
-	SET_SYSTEM_SLEEP_PM_OPS(vc4_hdmi_suspend, vc4_hdmi_resume)
+	RUNTIME_PM_OPS(vc4_hdmi_runtime_suspend, vc4_hdmi_runtime_resume, NULL)
+	SYSTEM_SLEEP_PM_OPS(vc4_hdmi_suspend, vc4_hdmi_resume)
 };
 
 struct platform_driver vc4_hdmi_driver = {
@@ -3439,6 +3437,6 @@ struct platform_driver vc4_hdmi_driver = {
 	.driver = {
 		.name = "vc4_hdmi",
 		.of_match_table = vc4_hdmi_dt_match,
-		.pm = &vc4_hdmi_pm_ops,
+		.pm = pm_ptr(&vc4_hdmi_pm_ops),
 	},
 };
