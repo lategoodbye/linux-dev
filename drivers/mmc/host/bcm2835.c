@@ -312,6 +312,8 @@ static void bcm2835_wait_transfer_complete(struct bcm2835_host *host)
 				"wait_transfer_complete - still waiting after %d retries\n",
 				timediff);
 			bcm2835_dumpregs(host);
+			mmc_debugfs_err_stats_inc(mmc_from_priv(host),
+						  MMC_ERR_REQ_TIMEOUT);
 			host->mrq->data->error = -ETIMEDOUT;
 			return;
 		}
@@ -423,6 +425,7 @@ static void bcm2835_transfer_block_pio(struct bcm2835_host *host, bool is_read)
 
 static void bcm2835_transfer_pio(struct bcm2835_host *host)
 {
+	struct mmc_host *mmc = mmc_from_priv(host);
 	struct device *dev = &host->pdev->dev;
 	u32 sdhsts;
 	bool is_read;
@@ -437,11 +440,13 @@ static void bcm2835_transfer_pio(struct bcm2835_host *host)
 		dev_err(dev, "%s transfer error - HSTS %08x\n",
 			is_read ? "read" : "write", sdhsts);
 		host->data->error = -EILSEQ;
+		mmc_debugfs_err_stats_inc(mmc, MMC_ERR_DAT_CRC);
 	} else if ((sdhsts & (SDHSTS_CMD_TIME_OUT |
 			      SDHSTS_REW_TIME_OUT))) {
 		dev_err(dev, "%s timeout error - HSTS %08x\n",
 			is_read ? "read" : "write", sdhsts);
 		host->data->error = -ETIMEDOUT;
+		mmc_debugfs_err_stats_inc(mmc, MMC_ERR_DAT_TIMEOUT);
 	}
 }
 
@@ -737,6 +742,7 @@ static void bcm2835_finish_data(struct bcm2835_host *host)
 
 static void bcm2835_finish_command(struct bcm2835_host *host)
 {
+	struct mmc_host *mmc = mmc_from_priv(host);
 	struct device *dev = &host->pdev->dev;
 	struct mmc_command *cmd = host->cmd;
 	u32 sdcmd;
@@ -748,6 +754,7 @@ static void bcm2835_finish_command(struct bcm2835_host *host)
 		dev_err(dev, "command never completed.\n");
 		bcm2835_dumpregs(host);
 		host->cmd->error = -EIO;
+		mmc_debugfs_err_stats_inc(mmc, MMC_ERR_CTRL_TIMEOUT);
 		bcm2835_finish_request(host);
 		return;
 	} else if (sdcmd & SDCMD_FAIL_FLAG) {
@@ -762,6 +769,8 @@ static void bcm2835_finish_command(struct bcm2835_host *host)
 
 			if (sdhsts & SDHSTS_CMD_TIME_OUT) {
 				host->cmd->error = -ETIMEDOUT;
+				mmc_debugfs_err_stats_inc(mmc,
+							  MMC_ERR_CMD_TIMEOUT);
 			} else {
 				dev_err(dev, "unexpected command %d error\n",
 					host->cmd->opcode);
@@ -824,6 +833,7 @@ static void bcm2835_timeout(struct work_struct *work)
 	struct delayed_work *d = to_delayed_work(work);
 	struct bcm2835_host *host =
 		container_of(d, struct bcm2835_host, timeout_work);
+	struct mmc_host *mmc = mmc_from_priv(host);
 	struct device *dev = &host->pdev->dev;
 
 	mutex_lock(&host->mutex);
@@ -836,12 +846,18 @@ static void bcm2835_timeout(struct work_struct *work)
 
 		if (host->data) {
 			host->data->error = -ETIMEDOUT;
+			mmc_debugfs_err_stats_inc(mmc, MMC_ERR_DAT_TIMEOUT);
 			bcm2835_finish_data(host);
 		} else {
-			if (host->cmd)
+			if (host->cmd) {
 				host->cmd->error = -ETIMEDOUT;
-			else
+				mmc_debugfs_err_stats_inc(mmc,
+							  MMC_ERR_CMD_TIMEOUT);
+			} else {
 				host->mrq->cmd->error = -ETIMEDOUT;
+				mmc_debugfs_err_stats_inc(mmc,
+							  MMC_ERR_REQ_TIMEOUT);
+			}
 
 			bcm2835_finish_request(host);
 		}
@@ -852,6 +868,7 @@ static void bcm2835_timeout(struct work_struct *work)
 
 static bool bcm2835_check_cmd_error(struct bcm2835_host *host, u32 intmask)
 {
+	struct mmc_host *mmc = mmc_from_priv(host);
 	struct device *dev = &host->pdev->dev;
 
 	if (!(intmask & SDHSTS_ERROR_MASK))
@@ -863,19 +880,27 @@ static bool bcm2835_check_cmd_error(struct bcm2835_host *host, u32 intmask)
 	dev_err(dev, "sdhost_busy_irq: intmask %08x\n", intmask);
 	if (intmask & SDHSTS_CRC7_ERROR) {
 		host->cmd->error = -EILSEQ;
+		mmc_debugfs_err_stats_inc(mmc, MMC_ERR_CMD_CRC);
 	} else if (intmask & (SDHSTS_CRC16_ERROR |
 			      SDHSTS_FIFO_ERROR)) {
-		if (host->mrq->data)
+		if (host->mrq->data) {
 			host->mrq->data->error = -EILSEQ;
-		else
+			mmc_debugfs_err_stats_inc(mmc, MMC_ERR_DAT_CRC);
+		} else {
 			host->cmd->error = -EILSEQ;
+			mmc_debugfs_err_stats_inc(mmc, MMC_ERR_CMD_CRC);
+		}
 	} else if (intmask & SDHSTS_REW_TIME_OUT) {
-		if (host->mrq->data)
+		if (host->mrq->data) {
 			host->mrq->data->error = -ETIMEDOUT;
-		else
+			mmc_debugfs_err_stats_inc(mmc, MMC_ERR_DAT_TIMEOUT);
+		} else {
 			host->cmd->error = -ETIMEDOUT;
+			mmc_debugfs_err_stats_inc(mmc, MMC_ERR_CMD_TIMEOUT);
+		}
 	} else if (intmask & SDHSTS_CMD_TIME_OUT) {
 		host->cmd->error = -ETIMEDOUT;
+		mmc_debugfs_err_stats_inc(mmc, MMC_ERR_CMD_TIMEOUT);
 	}
 	bcm2835_dumpregs(host);
 	return true;
@@ -883,12 +908,18 @@ static bool bcm2835_check_cmd_error(struct bcm2835_host *host, u32 intmask)
 
 static void bcm2835_check_data_error(struct bcm2835_host *host, u32 intmask)
 {
+	struct mmc_host *mmc = mmc_from_priv(host);
+
 	if (!host->data)
 		return;
-	if (intmask & (SDHSTS_CRC16_ERROR | SDHSTS_FIFO_ERROR))
+	if (intmask & (SDHSTS_CRC16_ERROR | SDHSTS_FIFO_ERROR)) {
 		host->data->error = -EILSEQ;
-	if (intmask & SDHSTS_REW_TIME_OUT)
+		mmc_debugfs_err_stats_inc(mmc, MMC_ERR_DAT_CRC);
+	}
+	if (intmask & SDHSTS_REW_TIME_OUT) {
 		host->data->error = -ETIMEDOUT;
+		mmc_debugfs_err_stats_inc(mmc, MMC_ERR_DAT_TIMEOUT);
+	}
 }
 
 static void bcm2835_busy_irq(struct bcm2835_host *host)
@@ -1192,8 +1223,10 @@ static void bcm2835_request(struct mmc_host *mmc, struct mmc_request *mrq)
 			edm);
 		bcm2835_dumpregs(host);
 
-		if (mrq->cmd)
+		if (mrq->cmd) {
 			mrq->cmd->error = -EILSEQ;
+			mmc_debugfs_err_stats_inc(mmc, MMC_ERR_REQ_TIMEOUT);
+		}
 
 		bcm2835_finish_request(host);
 		mutex_unlock(&host->mutex);
