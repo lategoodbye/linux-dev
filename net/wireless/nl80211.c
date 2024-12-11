@@ -4001,6 +4001,9 @@ static int nl80211_send_iface(struct sk_buff *msg, u32 portid, u32 seq, int flag
 	    nla_put_u32(msg, NL80211_ATTR_VIF_RADIO_MASK, wdev->radio_mask))
 		goto nla_put_failure;
 
+	if (cmd == NL80211_CMD_DEL_INTERFACE)
+		goto finish;
+
 	if (rdev->ops->get_channel && !wdev->valid_links) {
 		struct cfg80211_chan_def chandef = {};
 		int ret;
@@ -4088,6 +4091,7 @@ static int nl80211_send_iface(struct sk_buff *msg, u32 portid, u32 seq, int flag
 		nla_nest_end(msg, links);
 	}
 
+finish:
 	genlmsg_end(msg, hdr);
 	return 0;
 
