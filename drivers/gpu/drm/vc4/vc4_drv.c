@@ -440,6 +440,22 @@ static struct platform_driver *const component_drivers[] = {
 	&vc4_v3d_driver,
 };
 
+static int vc4_pm_suspend(struct device *dev)
+{
+	struct drm_device *drm = dev_get_drvdata(dev);
+
+	return drm_mode_config_helper_suspend(drm);
+}
+
+static int vc4_pm_resume(struct device *dev)
+{
+	struct drm_device *drm = dev_get_drvdata(dev);
+
+	drm_mode_config_helper_resume(drm);
+
+	return 0;
+}
+
 static int vc4_platform_drm_probe(struct platform_device *pdev)
 {
 	struct component_match *match = NULL;
@@ -469,12 +485,15 @@ static const struct of_device_id vc4_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, vc4_of_match);
 
+static DEFINE_SIMPLE_DEV_PM_OPS(vc4_pm_ops, vc4_pm_suspend, vc4_pm_resume);
+
 static struct platform_driver vc4_platform_driver = {
 	.probe		= vc4_platform_drm_probe,
 	.remove		= vc4_platform_drm_remove,
 	.shutdown	= vc4_platform_drm_shutdown,
 	.driver		= {
 		.name	= "vc4-drm",
+		.pm = pm_ptr(&vc4_pm_ops),
 		.of_match_table = vc4_of_match,
 	},
 };
