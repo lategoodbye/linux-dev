@@ -442,6 +442,13 @@ static int bcm2835_power_pd_power_off(struct generic_pm_domain *domain)
 		container_of(domain, struct bcm2835_power_domain, base);
 	struct bcm2835_power *power = pd->power;
 
+	/*
+	 * Currently powering down v3d domain during s2idle kills HDMI output.
+	 * As a temporary workaround make this a no-op.
+	 */
+	if (strcmp("v3d", domain->name) == 0)
+		return 0;
+
 	switch (pd->domain) {
 	case BCM2835_POWER_DOMAIN_GRAFX:
 		return bcm2835_power_power_off(pd, PM_GRAFX);
