@@ -93,7 +93,15 @@ static void rpi_common_init_power_domain(struct rpi_power_domains *rpi_domains,
 	dom->base.name = name;
 	dom->base.flags = GENPD_FLAG_ACTIVE_WAKEUP;
 	dom->base.power_on = rpi_domain_on;
-	dom->base.power_off = rpi_domain_off;
+
+	/*
+	 * Currently the CM4 behaves weird (system freeze or emmc2
+	 * doesn't resume) if we power down USB during s2idle.
+	 * As a temporary workaround don't register the relevant power off
+	 * handler.
+	 */
+	if (strcmp("USB", name))
+		dom->base.power_off = rpi_domain_off;
 
 	/*
 	 * Treat all power domains as off at boot.
