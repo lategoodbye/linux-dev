@@ -221,6 +221,33 @@ static int pwm_gpio_probe(struct platform_device *pdev)
 	return 0;
 }
 
+static int pwm_gpio_suspend(struct device *dev)
+{
+	struct pwm_gpio *gpwm = dev_get_drvdata(dev);
+
+	hrtimer_cancel(&gpwm->gpio_timer);
+
+	return 0;
+}
+
+static int pwm_gpio_resume(struct device *dev)
+{
+	struct pwm_gpio *gpwm = dev_get_drvdata(dev);
+	unsigned long next_toggle;
+
+	if (!gpwm->running)
+		return 0;
+
+	next_toggle = pwm_gpio_toggle(gpwm, !!gpwm->state.duty_cycle);
+	if (next_toggle)
+		hrtimer_start(&gpwm->gpio_timer, next_toggle, HRTIMER_MODE_REL);
+
+	return 0;
+}
+
+static DEFINE_SIMPLE_DEV_PM_OPS(pwm_gpio_pm_ops, pwm_gpio_suspend,
+				pwm_gpio_resume);
+
 static const struct of_device_id pwm_gpio_dt_ids[] = {
 	{ .compatible = "pwm-gpio" },
 	{ /* sentinel */ }
@@ -231,6 +258,7 @@ static struct platform_driver pwm_gpio_driver = {
 	.driver = {
 		.name = "pwm-gpio",
 		.of_match_table = pwm_gpio_dt_ids,
+		.pm = pm_ptr(&pwm_gpio_pm_ops),
 	},
 	.probe = pwm_gpio_probe,
 };
