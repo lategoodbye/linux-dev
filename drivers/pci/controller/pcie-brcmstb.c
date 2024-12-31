@@ -1399,7 +1399,10 @@ static void brcm_pcie_remove_bus(struct pci_bus *bus)
 	pcie->sr = NULL;
 }
 
-/* L23 is a low-power PCIe link state */
+/*
+ * Try to enter L23 ( low-power PCIe link state )
+ * This might fail if connected endpoint doesn't support it.
+ */
 static void brcm_pcie_enter_l23(struct brcm_pcie *pcie)
 {
 	void __iomem *base = pcie->base;
@@ -1422,7 +1425,7 @@ static void brcm_pcie_enter_l23(struct brcm_pcie *pcie)
 	}
 
 	if (!l23)
-		dev_err(pcie->dev, "failed to enter low-power link state\n");
+		dev_dbg(pcie->dev, "Unable to enter low-power link state\n");
 }
 
 static int brcm_phy_cntl(struct brcm_pcie *pcie, const int start)
