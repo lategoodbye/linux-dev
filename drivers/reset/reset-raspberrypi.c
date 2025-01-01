@@ -51,8 +51,10 @@ static int rpi_reset_reset(struct reset_controller_dev *rcdev, unsigned long id)
 		dev_addr = 0x100000;
 		ret = rpi_firmware_property(priv->fw, RPI_FIRMWARE_NOTIFY_XHCI_RESET,
 					    &dev_addr, sizeof(dev_addr));
-		if (ret)
+		if (ret) {
+			dev_err(rcdev->dev, "Failed to notify xHCI reset: %d\n", ret);
 			return ret;
+		}
 
 		/* Wait for vl805 to startup */
 		usleep_range(200, 1000);
@@ -94,6 +96,7 @@ static int rpi_reset_probe(struct platform_device *pdev)
 	dev_set_drvdata(dev, priv);
 
 	priv->fw = fw;
+	priv->rcdev.dev = dev;
 	priv->rcdev.owner = THIS_MODULE;
 	priv->rcdev.nr_resets = RASPBERRYPI_FIRMWARE_RESET_NUM_IDS;
 	priv->rcdev.ops = &rpi_reset_ops;
