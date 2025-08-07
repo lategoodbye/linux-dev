@@ -9,6 +9,8 @@
 #include <linux/kernel.h>
 #include <linux/phy.h>
 #include <linux/oa_tc6.h>
+#include <linux/of.h>
+#include <linux/of_net.h>
 
 #define DRV_NAME			"lan8650"
 
@@ -363,8 +365,8 @@ static int lan865x_probe(struct spi_device *spi)
 		goto oa_tc6_exit;
 	}
 
-	/* Get the MAC address from the SPI device tree node */
-	if (device_get_ethdev_address(&spi->dev, netdev))
+	/* Get the MAC address from the SPI device tree node or NVMEM */
+	if (of_get_ethdev_address(spi->dev.of_node, netdev))
 		eth_hw_addr_random(netdev);
 
 	ret = lan865x_set_hw_macaddr(priv, netdev->dev_addr);
